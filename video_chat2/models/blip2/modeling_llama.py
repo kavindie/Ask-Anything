@@ -572,6 +572,12 @@ class LlamaModel(LlamaPreTrainedModel):
                 )
 
             hidden_states = layer_outputs[0]
+            # https://github.com/huggingface/transformers/issues/25065#issuecomment-1655406332
+            # TODO new addition clamp inf values to enable fp16 training
+            if hidden_states.dtype == torch.float16:
+                max_dtype = torch.finfo(hidden_states.dtype).max
+                clamp_value = torch.where(torch.isinf(hidden_states).any(), max_dtype - 1000, max_dtype)
+                hidden_states = torch.clamp(hidden_states, min=-clamp_value, max=clamp_value)
 
             if use_cache:
                 next_decoder_cache += (layer_outputs[2 if output_attentions else 1],)

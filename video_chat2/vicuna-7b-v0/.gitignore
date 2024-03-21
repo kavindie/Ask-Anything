@@ -1,0 +1,14 @@
+# ignore everything except this file
+# /*
+# !.gitignore
+
+# generated from vicuna-7b-delta-v0
+/config.json
+/generation_config.json
+/model-00001-of-00003.safetensors
+/model-00002-of-00003.safetensors
+/model-00003-of-00003.safetensors
+/model.safetensors.index.json
+/special_tokens_map.json
+/tokenizer_config.json
+/tokenizer.model
