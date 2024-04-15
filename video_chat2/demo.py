@@ -29,7 +29,7 @@ def init_model():
         r=16, lora_alpha=32, lora_dropout=0.
     )
     model.llama_model = get_peft_model(model.llama_model, peft_config)
-    state_dict = torch.load("your_model_path/videochat2_7b_stage3.pth", "cpu")
+    state_dict = torch.load("./videochat2_7b_stage3.pth", "cpu")
     if 'model' in state_dict.keys():
         msg = model.load_state_dict(state_dict['model'], strict=False)
     else:

@@ -14,6 +14,8 @@ from dataset.video_transforms import (
 )
 from torchvision.transforms.functional import InterpolationMode
 
+from tqdm import tqdm
+
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
@@ -57,22 +59,23 @@ class Chat:
         conv.messages.append([conv.roles[0], text + '\n'])
         return conv
 
-    def answer(self, conv, img_list, max_new_tokens=200, num_beams=1, min_length=1, top_p=0.9,
+    def answer(self, conv, img_list, do_sample=True, max_new_tokens=200, num_beams=1, min_length=1, top_p=0.9,
                repetition_penalty=1.0, length_penalty=1, temperature=1.0):
         conv.messages.append([conv.roles[1], None])
         embs = self.get_context_emb(conv, img_list)
-        outputs = self.model.llama_model.generate(
-            inputs_embeds=embs,
-            max_new_tokens=max_new_tokens,
-            stopping_criteria=self.stopping_criteria,
-            num_beams=num_beams,
-            do_sample=True,
-            min_length=min_length,
-            top_p=top_p,
-            repetition_penalty=repetition_penalty,
-            length_penalty=length_penalty,
-            temperature=temperature,
-        )
+        with torch.no_grad():
+            outputs = self.model.llama_model.generate(
+                inputs_embeds=embs,
+                max_new_tokens=max_new_tokens,
+                stopping_criteria=self.stopping_criteria,
+                num_beams=num_beams,
+                do_sample=do_sample,
+                min_length=min_length,
+                top_p=top_p,
+                repetition_penalty=repetition_penalty,
+                length_penalty=length_penalty,
+                temperature=temperature,
+            )
         output_token = outputs[0]
         if output_token[0] == 0:  # the model might output a unknow token <unk> at the beginning. remove it
                 output_token = output_token[1:]
@@ -97,9 +100,9 @@ class Chat:
         num_frames = len(vr)
         frame_indices = self.get_index(num_frames, num_segments)
         
-        duration = len(vr) // vr.get_avg_fps()
-        index = np.linspace(0, len(vr)-1, num=int(duration))
-        buffer = vr.get_batch(index).asnumpy()
+        # duration = len(vr) // vr.get_avg_fps()
+        # index = np.linspace(0, len(vr)-1, num=int(duration))
+        # buffer = vr.get_batch(index).numpy()
         # transform
         input_mean = [0.48145466, 0.4578275, 0.40821073]
         input_std = [0.26862954, 0.26130258, 0.27577711]
@@ -112,13 +115,13 @@ class Chat:
             GroupNormalize(input_mean, input_std) 
         ])
 
+        # images_group = list()
+        # for frame in buffer:
+        #     img = Image.fromarray(frame)
+        #     images_group.append(img)
         images_group = list()
-        for frame in buffer:
-            img = Image.fromarray(frame)
-            images_group.append(img)
-        images_group = list()
-        for frame_index in frame_indices:
-            img = Image.fromarray(vr[frame_index].asnumpy())
+        for frame_index in tqdm(frame_indices):
+            img = Image.fromarray(vr[frame_index].numpy())
             images_group.append(img)
         torch_imgs_224 = transform(images_group)
         if return_msg:
@@ -186,7 +189,11 @@ class Chat:
         print("Input video shape:", vid.shape)
         new_pos_emb = self.get_sinusoid_encoding_table(n_position=(224//16)**2*num_segments, cur_frame=num_segments)
         self.model.vision_encoder.encoder.pos_embed = new_pos_emb
-        image_emb, _ = self.model.encode_img(video, "Watch the video and answer the question.")
+        print("About to encode the video")
+        with torch.no_grad():
+            #image_emb, _ = self.model.encode_img(video, "Watch the video and answer the question.")
+            image_emb, _ = self.model.encode_img(video,"Carefully watch the video and pay attention to the objects, and the movements. Based on your observations, select the best option that accurately addresses the question.\n")
+        print("Video encoded")
         img_list.append(image_emb)
         conv.messages.append([
             conv.roles[0], 
@@ -197,7 +204,7 @@ class Chat:
         return msg, img_list, conv
     
     def upload_img(self, image, conv, img_list):
-        img = image#Image.open(image)#.convert('RGB')
+        img = Image.open(image).convert('RGB')
         transform = T.Compose(
             [
                 T.Resize(
@@ -208,8 +215,10 @@ class Chat:
             ]
         )
 
-        img = transform(img).unsqueeze(0).unsqueeze(0).cuda()
-        image_emb, _ = self.model.encode_img(img, "Observe the image and answer the question.")
+        img = transform(img).unsqueeze(0).unsqueeze(0).to(self.device)
+        #img = img.unsqueeze(0).to(self.device)if run with process_img uncomment this and comment all above
+        with torch.no_grad():
+            image_emb, _ = self.model.encode_img(img, "Observe the image and answer the question.")
         img_list.append(image_emb)
         conv.messages.append([
             conv.roles[0],
@@ -221,7 +230,7 @@ class Chat:
 
     def get_context_emb(self, conv, img_list):
         prompt = get_prompt(conv)
-        #print(prompt)
+        print(prompt)
         if '<VideoHere>' in prompt:
             prompt_segs = prompt.split('<VideoHere>')
         else:
@@ -230,7 +239,7 @@ class Chat:
         with torch.no_grad():
             seg_tokens = [
                 self.model.llama_tokenizer(
-                    seg, return_tensors="pt", add_special_tokens=i == 0).to("cuda:0").input_ids
+                    seg, return_tensors="pt", add_special_tokens=i == 0).to(self.device).input_ids
                 # only add bos to the first seg
                 for i, seg in enumerate(prompt_segs)
             ]
