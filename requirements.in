@@ -1,0 +1,27 @@
+# How to use this file:
+# pip install pip-tools  # install below tools
+# pip-compile            # regenerate requirements.txt
+# pip-sync               # sync venv with requirements.txt
+
+PyYAML
+torch
+peft
+timm
+decord
+av
+opencv-python
+imageio
+transformers
+fschat
+sentencepiece
+
+# required for low_resource: True
+bitsandbytes  # don't forget to module load cuda/12.2.2
+
+gradio  # the problem maker
+
+# development
+pip-tools  # this
+ipython  # ipython
+ipykernel  # jupyter
+matplotlib

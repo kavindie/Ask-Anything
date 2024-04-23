@@ -47,3 +47,6 @@ anno/
 wandb/
 logs/
 *.pth
+example/
+train.json
+bert-base-uncased/

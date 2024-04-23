@@ -7,7 +7,7 @@
     "freeze_vit": false,
     "freeze_qformer": false,
     "max_txt_len": 512,
-    "low_resource": true,
+    "low_resource": false,
     "vision_encoder": {
       "name": "vit_l14",
       "img_size": 224,

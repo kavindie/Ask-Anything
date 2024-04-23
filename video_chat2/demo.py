@@ -29,7 +29,7 @@ def init_model():
         r=16, lora_alpha=32, lora_dropout=0.
     )
     model.llama_model = get_peft_model(model.llama_model, peft_config)
-    state_dict = torch.load("your_model_path/videochat2_7b_stage3.pth", "cpu")
+    state_dict = torch.load("./videochat2_7b_stage3.pth", "cpu")
     if 'model' in state_dict.keys():
         msg = model.load_state_dict(state_dict['model'], strict=False)
     else:
@@ -147,9 +147,9 @@ with gr.Blocks(title="InternVideo-VideoChat!",theme=gvlabtheme,css="#chatbot {ov
         with gr.Column(scale=0.5, visible=True) as video_upload:
             with gr.Column(elem_id="image", scale=0.5) as img_part:
                 with gr.Tab("Video", elem_id='video_tab'):
-                    up_video = gr.Video(interactive=True, include_audio=True, elem_id="video_upload").style(height=360)
+                    up_video = gr.Video(interactive=True, include_audio=True, elem_id="video_upload", height=360)
                 with gr.Tab("Image", elem_id='image_tab'):
-                    up_image = gr.Image(type="pil", interactive=True, elem_id="image_upload").style(height=360)
+                    up_image = gr.Image(type="pil", interactive=True, elem_id="image_upload", height=360)
             upload_button = gr.Button(value="Upload & Start Chat", interactive=True, variant="primary")
             clear = gr.Button("Restart")
             
@@ -186,7 +186,7 @@ with gr.Blocks(title="InternVideo-VideoChat!",theme=gvlabtheme,css="#chatbot {ov
             chatbot = gr.Chatbot(elem_id="chatbot",label='VideoChat')
             with gr.Row():
                 with gr.Column(scale=0.7):
-                    text_input = gr.Textbox(show_label=False, placeholder='Please upload your video first', interactive=False).style(container=False)
+                    text_input = gr.Textbox(show_label=False, placeholder='Please upload your video first', interactive=False, container=False)
                 with gr.Column(scale=0.15, min_width=0):
                     run = gr.Button("💭Send")
                 with gr.Column(scale=0.15, min_width=0):
@@ -204,5 +204,6 @@ with gr.Blocks(title="InternVideo-VideoChat!",theme=gvlabtheme,css="#chatbot {ov
     run.click(lambda: "", None, text_input)  
     clear.click(gradio_reset, [chat_state, img_list], [chatbot, up_image, up_video, text_input, upload_button, chat_state, img_list], queue=False)
 
-demo.launch(share=True, enable_queue=True)
-# demo.launch(server_name="0.0.0.0", server_port=10034, enable_queue=True)
+demo.queue()
+demo.launch()
+# demo.launch(server_name="0.0.0.0", server_port=10034)
