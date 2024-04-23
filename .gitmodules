@@ -1,0 +1,6 @@
+[submodule "video_chat2/llama-7b"]
+	path = video_chat2/llama-7b
+	url = https://huggingface.co/huggyllama/llama-7b
+[submodule "video_chat2/vicuna-7b-delta-v0"]
+	path = video_chat2/vicuna-7b-delta-v0
+	url = https://huggingface.co/lmsys/vicuna-7b-delta-v0
